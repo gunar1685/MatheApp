@@ -46,7 +46,29 @@
   }
   button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
   .aufgabe,.kennzahl,.zeile{-webkit-user-select:none;user-select:none}
-  .blatt{width:100%;max-width:460px}
+  .blatt{width:100%;max-width:var(--breite,460px)}
+  .buehne{display:block}
+
+  /* Größere Displays: mehr Breite, größere Schrift und Tasten */
+  @media (min-width:600px){
+    :root{--breite:600px;--eq:66px;--taste:32px;--taste-pad:18px;--punkte:440px;--punkte-eng:360px}
+    body{padding:20px 20px 34px}
+  }
+  @media (min-width:900px){
+    :root{--breite:820px;--eq:76px;--taste:36px;--taste-pad:22px;--punkte:480px;--punkte-eng:400px}
+  }
+  /* Breite Displays im Querformat: Aufgabe links, Tastenfeld rechts */
+  @media (min-width:820px) and (orientation:landscape){
+    :root{--breite:940px}
+    .buehne{display:grid;grid-template-columns:1fr minmax(280px,360px);gap:16px;align-items:start}
+    .buehne .karte{margin-bottom:0}
+  }
+  /* Flache Fenster (Handy im Querformat): alles etwas kompakter */
+  @media (max-height:520px){
+    :root{--eq:38px;--taste:22px;--taste-pad:9px}
+    body{padding:8px 12px 14px}
+    h1{font-size:20px}
+  }
 
   header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
   .uhr[hidden]{display:none}
@@ -89,7 +111,7 @@
   .aufgabe{
     display:flex;align-items:center;justify-content:center;gap:10px;
     font-family:"Baloo 2",system-ui,sans-serif;font-weight:800;
-    font-size:clamp(40px,13vw,58px);line-height:1.1;
+    font-size:var(--eq,clamp(38px,12vw,56px));line-height:1.1;
     padding:6px 0 12px;
   }
   .zahl-a{color:var(--rot)}
@@ -120,8 +142,8 @@
   /* Punktefeld (Zwanziger- bzw. Hunderterfeld) */
   .feldbox{margin-top:6px}
   .feldbox[hidden]{display:none}
-  .zwanziger{display:flex;flex-direction:column;gap:7px;margin:4px auto 0;max-width:360px}
-  .zwanziger.kompakt{gap:4px;max-width:290px}
+  .zwanziger{display:flex;flex-direction:column;gap:7px;margin:4px auto 0;max-width:var(--punkte,360px)}
+  .zwanziger.kompakt{gap:4px;max-width:var(--punkte-eng,290px)}
   .reihe{display:flex;gap:16px}
   .zwanziger.kompakt .reihe{gap:10px}
   .zwanziger.kompakt .reihe.blockende{margin-bottom:9px}
@@ -142,6 +164,29 @@
   .legende{font-size:13px;font-weight:700;color:var(--tinte-weich);text-align:center;margin-top:9px}
 
   /* Tastenfeld */
+  /* Testmodus */
+  .testleiste{margin-bottom:12px}
+  .test-knopf{
+    font-family:"Baloo 2",system-ui,sans-serif;font-weight:800;font-size:17px;
+    width:100%;padding:12px;border-radius:16px;cursor:pointer;
+    background:var(--karte);color:var(--tinte);
+    border:2px solid var(--tinte);border-bottom-width:5px;
+  }
+  .test-knopf:active{transform:translateY(2px);border-bottom-width:3px}
+  .test-knopf.laeuft{background:var(--tinte);color:#fff}
+  .test-knopf:focus-visible{outline:3px solid var(--sonne);outline-offset:2px}
+  .fortschritt[hidden]{display:none}
+  .fortschritt{margin-top:9px}
+  .balken{height:10px;background:var(--karte);border:2px solid var(--rand);border-radius:99px;overflow:hidden}
+  .balken span{display:block;height:100%;width:0;background:var(--sonne);transition:width .25s ease}
+  .fortschritt-text{margin:6px 0 0;text-align:center;font-size:14px;color:var(--tinte-weich)}
+  .fortschritt-text b{color:var(--tinte)}
+  .test-lob{
+    font-family:"Baloo 2",system-ui,sans-serif;font-weight:800;font-size:19px;
+    margin:0 0 12px;text-align:center;
+  }
+  .zeile.test-marke .rechnung::before{content:"Test · ";font-size:12px;color:var(--tinte-weich)}
+
   /* Elternbereich */
   .hintergrund{position:fixed;inset:0;background:rgba(16,38,60,.45);z-index:5}
   .hintergrund[hidden]{display:none}
@@ -184,8 +229,8 @@
 
   .tasten{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
   .taste{
-    font-family:"Baloo 2",system-ui,sans-serif;font-weight:800;font-size:26px;
-    padding:14px 0;border-radius:16px;cursor:pointer;
+    font-family:"Baloo 2",system-ui,sans-serif;font-weight:800;font-size:var(--taste,26px);
+    padding:var(--taste-pad,14px) 0;border-radius:16px;cursor:pointer;
     background:var(--karte);color:var(--tinte);
     border:2px solid var(--rand);border-bottom-width:5px;
   }
@@ -225,6 +270,15 @@
     <div class="schalter raeume" role="group" aria-label="Zahlenraum" id="raeume"></div>
   </div>
 
+  <div class="testleiste">
+    <button class="test-knopf" type="button" id="testKnopf">Test starten · 20 Aufgaben</button>
+    <div class="fortschritt" id="fortschritt" hidden>
+      <div class="balken"><span id="balkenFuellung"></span></div>
+      <p class="fortschritt-text"><b id="fortschrittText">Aufgabe 1 von 20</b></p>
+    </div>
+  </div>
+
+  <div class="buehne">
   <div class="karte">
     <div class="aufgabe" id="aufgabe" aria-live="polite">
       <span class="zahl-a" id="zahlA">7</span>
@@ -255,6 +309,7 @@
     <button class="taste" type="button" data-ziffer="0">0</button>
     <button class="taste pruefen" type="button" id="pruefen">OK</button>
   </div>
+  </div>
 
   <div class="fusszeile">
     <button class="klein" type="button" id="hilfeKnopf" aria-pressed="false">Punkte zeigen</button>
@@ -264,6 +319,22 @@
   </div>
 
 </div>
+
+<section class="eltern" id="testErgebnis" role="dialog" aria-modal="true" aria-labelledby="testTitel" hidden>
+  <div class="eltern-kopf">
+    <h2 id="testTitel">Test beendet</h2>
+    <button class="schliessen" type="button" id="testSchliessen" aria-label="Schließen">✕</button>
+  </div>
+  <p class="test-lob" id="testLob"></p>
+  <div class="kennzahlen" id="testKennzahlen"></div>
+  <div class="aufteilung" id="testDetail"></div>
+  <h3 class="listen-titel">Alle 20 Aufgaben</h3>
+  <ol class="liste" id="testListe"></ol>
+  <div class="eltern-fuss">
+    <button class="klein" type="button" id="testNochmal">Neuer Test</button>
+    <button class="klein" type="button" id="testKopieren">Als Text kopieren</button>
+  </div>
+</section>
 
 <div class="hintergrund" id="hintergrund" hidden></div>
 <section class="eltern" id="eltern" role="dialog" aria-modal="true" aria-labelledby="elternTitel" hidden>
@@ -308,6 +379,11 @@
   var elternOffen = false;
   var uhrAn = true;
   var uhrTakt = null;
+  var TESTLAENGE = 20;
+  var testAktiv = false;
+  var testIndex = 0;
+  var testErgebnisse = [];
+  var testDialogOffen = false;
 
   var el = {
     zahlA: document.getElementById("zahlA"),
@@ -448,7 +524,7 @@
     uhrStoppen();
     uhrAnzeigen(0);
     uhrTakt = setInterval(function(){
-      if (!gesperrt && !elternOffen) uhrAnzeigen(Date.now() - startzeit);
+      if (!gesperrt && !elternOffen && !testDialogOffen) uhrAnzeigen(Date.now() - startzeit);
     }, 100);
   }
 
@@ -505,16 +581,26 @@
         ersteRichtig: fehlversuche === 0,
         versuche: fehlversuche + 1,
         falsch: falscheAntworten.slice(),
-        dauer: dauer
+        dauer: dauer,
+        test: testAktiv
       });
       geloest++; serie++;
+      if (testAktiv){
+        testErgebnisse.push(verlauf[verlauf.length - 1]);
+        testIndex++;
+        fortschrittZeichnen();
+      }
       el.geloest.textContent = geloest;
       el.serie.textContent = serie;
       el.aufgabe.className = "aufgabe richtig";
       el.rueck.className = "rueckmeldung richtig";
       el.rueck.textContent = lob() + (uhrAn ? " " + (dauer / 1000).toFixed(1).replace(".", ",") + " s" : "");
       ton(true);
-      setTimeout(starten, 1000);
+      if (testAktiv && testIndex >= TESTLAENGE){
+        setTimeout(testAbschluss, 900);
+      } else {
+        setTimeout(starten, 1000);
+      }
     } else {
       fehlversuche++;
       falscheAntworten.push(wert);
@@ -689,7 +775,7 @@
     }
     verlauf.slice().reverse().forEach(function(e){
       var li = document.createElement("li");
-      li.className = "zeile " + (e.ersteRichtig ? "ok" : "nok");
+      li.className = "zeile " + (e.ersteRichtig ? "ok" : "nok") + (e.test ? " test-marke" : "");
       var rechnung = e.a + " " + zeichen(e.op) + " " + e.b + " = " + e.ergebnis;
       li.innerHTML =
         '<span class="rechnung">' + rechnung + '</span>' +
@@ -741,7 +827,7 @@
 
   document.getElementById("elternKnopf").addEventListener("click", elternOeffnen);
   document.getElementById("schliessen").addEventListener("click", elternSchliessen);
-  hintergrund.addEventListener("click", elternSchliessen);
+  hintergrund.addEventListener("click", function(){ if (elternOffen) elternSchliessen(); });
 
   document.getElementById("kopieren").addEventListener("click", function(){
     var knopf = this;
@@ -785,6 +871,10 @@
       if (e.key === "Escape") { elternSchliessen(); e.preventDefault(); }
       return;
     }
+    if (testDialogOffen){
+      if (e.key === "Escape") { testDialogSchliessen(); e.preventDefault(); }
+      return;
+    }
     if (e.key >= "0" && e.key <= "9") { ziffer(e.key); e.preventDefault(); }
     else if (e.key === "Backspace") { loeschen(); e.preventDefault(); }
     else if (e.key === "Enter") { pruefen(); e.preventDefault(); }
@@ -825,11 +915,8 @@
       var p = anfordern.call(e, { navigationUI: "hide" });
       if (p && p.catch) p.catch(function(){});
     } catch(err){ /* vom Browser abgelehnt */ }
-    try {
-      if (screen.orientation && screen.orientation.lock){
-        screen.orientation.lock("portrait").catch(function(){});
-      }
-    } catch(err){ /* nicht überall verfügbar */ }
+    // Ausrichtung bewusst nicht festgelegt: Auf Tablets ist das Querformat-
+    // Layout (Aufgabe links, Tasten rechts) oft angenehmer.
   }
 
   function vollbildAus(){
@@ -860,6 +947,159 @@
   });
 
   vollbildKnopfAktualisieren();
+
+  // ---- Testmodus: 20 zufällige Aufgaben der gewählten Einstellung ----
+  var testKnopf = document.getElementById("testKnopf");
+  var fortschritt = document.getElementById("fortschritt");
+  var balkenFuellung = document.getElementById("balkenFuellung");
+  var fortschrittText = document.getElementById("fortschrittText");
+  var testBox = document.getElementById("testErgebnis");
+
+  function einstellungenSperren(sperren){
+    document.querySelectorAll("[data-art],[data-raum]").forEach(function(b){
+      b.disabled = sperren;
+    });
+    document.getElementById("zuruecksetzen").disabled = sperren;
+  }
+
+  function fortschrittZeichnen(){
+    var nummer = Math.min(testIndex + 1, TESTLAENGE);
+    fortschrittText.textContent = "Aufgabe " + nummer + " von " + TESTLAENGE;
+    balkenFuellung.style.width = (testIndex / TESTLAENGE * 100) + "%";
+  }
+
+  function testStarten(){
+    testAktiv = true;
+    testIndex = 0;
+    testErgebnisse = [];
+    fortschritt.hidden = false;
+    testKnopf.textContent = "Test abbrechen";
+    testKnopf.classList.add("laeuft");
+    einstellungenSperren(true);
+    fortschrittZeichnen();
+    starten();
+  }
+
+  function testBeenden(){
+    testAktiv = false;
+    fortschritt.hidden = true;
+    testKnopf.textContent = "Test starten · " + TESTLAENGE + " Aufgaben";
+    testKnopf.classList.remove("laeuft");
+    einstellungenSperren(false);
+  }
+
+  function artName(){
+    var namen = {
+      plus: "Plus", minus: "Minus", mal: "Mal",
+      gemischt: "Gemischt + −", gemischtMal: "Gemischt + − ·"
+    };
+    return namen[art];
+  }
+
+  function testAbschluss(){
+    var richtig = 0, zeit = 0, langsamste = 0;
+    testErgebnisse.forEach(function(e){
+      if (e.ersteRichtig) richtig++;
+      zeit += e.dauer;
+      if (e.dauer > langsamste) langsamste = e.dauer;
+    });
+    var schnitt = testErgebnisse.length ? zeit / testErgebnisse.length : 0;
+
+    document.getElementById("testLob").textContent =
+      richtig + " von " + TESTLAENGE + " beim ersten Versuch richtig";
+
+    document.getElementById("testKennzahlen").innerHTML =
+      kachel(Math.round(richtig / TESTLAENGE * 100) + " %", "Trefferquote") +
+      kachel(sek(schnitt), "Ø pro Aufgabe") +
+      kachel(minuten(zeit), "Gesamtzeit");
+
+    var namen = { "+": "Plus", "-": "Minus", "*": "Mal" };
+    var teile = ["Einstellung: <b>" + artName() + "</b>, Zahlenraum bis <b>" + raum + "</b>"];
+    ["+", "-", "*"].forEach(function(op){
+      var t = testErgebnisse.filter(function(e){ return e.op === op; });
+      if (!t.length) return;
+      var r = t.filter(function(e){ return e.ersteRichtig; }).length;
+      var d = t.reduce(function(s, e){ return s + e.dauer; }, 0) / t.length;
+      teile.push(namen[op] + ": <b>" + r + "/" + t.length + "</b> richtig, Ø <b>" + sek(d) + "</b>");
+    });
+    teile.push("Längste Aufgabe: <b>" + sek(langsamste) + "</b>");
+    document.getElementById("testDetail").innerHTML = teile.join("<br>");
+
+    var liste = document.getElementById("testListe");
+    liste.innerHTML = "";
+    testErgebnisse.forEach(function(e, i){
+      var li = document.createElement("li");
+      li.className = "zeile " + (e.ersteRichtig ? "ok" : "nok");
+      li.innerHTML =
+        '<span class="rechnung">' + (i + 1) + ". " + e.a + " " + zeichen(e.op) + " " + e.b + " = " + e.ergebnis + '</span>' +
+        '<span class="marke">' + (e.ersteRichtig ? "✓" : "✗ " + e.versuche + " Versuche") + '</span>' +
+        '<span class="dauer">' + sek(e.dauer) + '</span>' +
+        (e.falsch.length ? '<span class="detail">Eingetippt: ' + e.falsch.join(", ") + '</span>' : "");
+      liste.appendChild(li);
+    });
+
+    testBeenden();
+    testDialogOffen = true;
+    hintergrund.hidden = false;
+    testBox.hidden = false;
+    document.getElementById("testSchliessen").focus();
+  }
+
+  function minuten(ms){
+    var s = Math.round(ms / 1000);
+    var m = Math.floor(s / 60);
+    return m ? m + ":" + String(s % 60).padStart(2, "0") + " min" : s + " s";
+  }
+
+  function testDialogSchliessen(){
+    testDialogOffen = false;
+    testBox.hidden = true;
+    hintergrund.hidden = true;
+    starten();
+  }
+
+  function testTextfassung(){
+    var richtig = testErgebnisse.filter(function(e){ return e.ersteRichtig; }).length;
+    var zeit = testErgebnisse.reduce(function(s, e){ return s + e.dauer; }, 0);
+    var zeilen = [
+      "Test: " + artName() + ", Zahlenraum bis " + raum,
+      richtig + " von " + TESTLAENGE + " beim ersten Versuch richtig · Gesamtzeit " + minuten(zeit),
+      ""
+    ];
+    testErgebnisse.forEach(function(e, i){
+      zeilen.push((i + 1) + ". " + e.a + " " + zeichen(e.op) + " " + e.b + " = " + e.ergebnis +
+        " | " + (e.ersteRichtig ? "sofort richtig" : e.versuche + " Versuche (" + e.falsch.join(", ") + ")") +
+        " | " + sek(e.dauer));
+    });
+    return zeilen.join("\n");
+  }
+
+  testKnopf.addEventListener("click", function(){
+    if (testAktiv){ testBeenden(); starten(); } else { testStarten(); }
+  });
+
+  document.getElementById("testSchliessen").addEventListener("click", testDialogSchliessen);
+
+  document.getElementById("testNochmal").addEventListener("click", function(){
+    testDialogOffen = false;
+    testBox.hidden = true;
+    hintergrund.hidden = true;
+    testStarten();
+  });
+
+  document.getElementById("testKopieren").addEventListener("click", function(){
+    var knopf = this;
+    var fertig = function(){
+      knopf.textContent = "Kopiert";
+      setTimeout(function(){ knopf.textContent = "Als Text kopieren"; }, 1600);
+    };
+    var text = testTextfassung();
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(fertig, function(){ ersatzKopie(text, fertig); });
+    } else {
+      ersatzKopie(text, fertig);
+    }
+  });
 
   zwanzigerAufbauen();
   starten();

@@ -1,6 +1,6 @@
 /* Service Worker: macht die Rechen-App offline nutzbar.
    Beim Aktualisieren der App die Versionsnummer hochzählen. */
-const CACHE = "rechnen-ueben-v1";
+const CACHE = "rechnen-ueben-v2";
 
 const DATEIEN = [
   "./",
