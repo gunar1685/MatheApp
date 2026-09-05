@@ -880,18 +880,25 @@
     else if (e.key === "Enter") { pruefen(); e.preventDefault(); }
   });
 
+  var APP_VERSION = "3";
+
   // Offline-Betrieb: nur möglich, wenn die Seite über http(s) geladen wurde
   if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0){
     window.addEventListener("load", function(){
-      navigator.serviceWorker.register("sw.js").catch(function(){});
+      // updateViaCache: "none" – das Skript sw.js nie aus dem Browser-Cache nehmen,
+      // sonst bemerkt Chrome eine neue Fassung erst Stunden später.
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" })
+        .then(function(reg){ reg.update(); })
+        .catch(function(){});
     });
   }
 
   // Hinweis für Eltern: läuft die App installiert oder im Browser?
   function startArt(){
-    if (alsAppGestartet()) return "Läuft als installierte App im Vollbild – ohne Adressleiste.";
-    if (imVollbild()) return "Läuft im Browser-Vollbild – die Adressleiste ist ausgeblendet. Wischt man vom oberen Rand, kommt sie zurück; dagegen hilft die Bildschirm-Fixierung (App-Pinning) in den Android-Einstellungen.";
-    return "Läuft im Browserfenster mit Adressleiste. Der Vollbildmodus startet mit der ersten Berührung des Bildschirms oder über „Vollbild“ unten.";
+    var v = "App-Version " + APP_VERSION + ". ";
+    if (alsAppGestartet()) return v + "Läuft als installierte App im Vollbild – ohne Adressleiste.";
+    if (imVollbild()) return v + "Läuft im Browser-Vollbild – die Adressleiste ist ausgeblendet. Wischt man vom oberen Rand, kommt sie zurück; dagegen hilft die Bildschirm-Fixierung (App-Pinning) in den Android-Einstellungen.";
+    return v + "Läuft im Browserfenster mit Adressleiste. Der Vollbildmodus startet mit der ersten Berührung des Bildschirms oder über „Vollbild“ unten.";
   }
 
   // ---- Vollbild ----
