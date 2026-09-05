@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rechnen üben</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#16263c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rechnen">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --papier:#eef4fb;
+    --karo:#cbdcef;
+    --tinte:#16263c;
+    --tinte-weich:#5d7392;
+    --rot:#e0353c;
+    --blau:#2d63d8;
+    --gruen:#1f9159;
+    --sonne:#ffc23c;
+    --karte:#ffffff;
+    --rand:#d8e4f2;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Nunito",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:var(--tinte);
+    background-color:var(--papier);
+    background-image:
+      linear-gradient(var(--karo) 1px, transparent 1px),
+      linear-gradient(90deg, var(--karo) 1px, transparent 1px);
+    background-size:22px 22px;
+    min-height:100vh;
+    padding:14px 14px 30px;
+    display:flex;
+    justify-content:center;
+    overscroll-behavior:contain;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+  .aufgabe,.kennzahl,.zeile{-webkit-user-select:none;user-select:none}
+  .blatt{width:100%;max-width:460px}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .uhr[hidden]{display:none}
+  .uhr b{font-variant-numeric:tabular-nums}
+  h1{
+    font-family:"Baloo 2",system-ui,sans-serif;
+    font-weight:800;font-size:24px;letter-spacing:.2px;margin:0;
+  }
+  .stand{font-size:14px;font-weight:700;color:var(--tinte-weich);white-space:nowrap}
+  .stand b{color:var(--tinte)}
+
+  .karte{
+    background:var(--karte);
+    border:2px solid var(--rand);
+    border-radius:20px;
+    padding:14px;
+    margin-bottom:12px;
+    box-shadow:0 2px 0 var(--rand);
+  }
+
+  /* Einstellungen */
+  .optionen{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .schalter{display:flex;background:var(--karte);border:2px solid var(--rand);border-radius:14px;padding:3px;gap:3px}
+  .schalter button{
+    font:inherit;font-weight:700;font-size:14px;
+    border:0;background:transparent;color:var(--tinte-weich);
+    padding:7px 12px;border-radius:11px;cursor:pointer;
+  }
+  .schalter button[aria-pressed="true"]{background:var(--tinte);color:#fff}
+  .titel-raum{width:100%;margin:2px 0 -2px 4px;font-size:13px;font-weight:800;color:var(--tinte-weich)}
+  .schalter.arten{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;width:100%}
+  .schalter.arten button{min-width:0;padding:8px 4px;white-space:nowrap}
+  .schalter.arten button:nth-child(-n+3){grid-column:span 2}
+  .schalter.arten button:nth-child(n+4){grid-column:span 3}
+  .schalter.raeume{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;width:100%}
+  .schalter.raeume button{min-width:0;padding:8px 4px;font-size:14px}
+  .schalter button:focus-visible,.taste:focus-visible,.klein:focus-visible{outline:3px solid var(--sonne);outline-offset:2px}
+
+  /* Aufgabe */
+  .aufgabe{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    font-family:"Baloo 2",system-ui,sans-serif;font-weight:800;
+    font-size:clamp(40px,13vw,58px);line-height:1.1;
+    padding:6px 0 12px;
+  }
+  .zahl-a{color:var(--rot)}
+  .zahl-b{color:var(--blau)}
+  .zeichen{color:var(--tinte-weich)}
+  .feld{
+    min-width:2.4em;text-align:center;
+    border-bottom:5px solid var(--tinte);
+    border-radius:4px;
+    padding:0 .12em;
+  }
+  .feld.leer{color:#b9c8db}
+  .aufgabe.richtig .feld{color:var(--gruen);border-color:var(--gruen)}
+  .aufgabe.falsch .feld{color:var(--rot);border-color:var(--rot);animation:wackeln .34s}
+  @keyframes wackeln{
+    0%,100%{transform:translateX(0)}
+    25%{transform:translateX(-7px)}
+    75%{transform:translateX(7px)}
+  }
+
+  .rueckmeldung{
+    text-align:center;font-weight:800;font-size:16px;min-height:24px;
+    color:var(--tinte-weich);
+  }
+  .rueckmeldung.richtig{color:var(--gruen)}
+  .rueckmeldung.falsch{color:var(--rot)}
+
+  /* Punktefeld (Zwanziger- bzw. Hunderterfeld) */
+  .feldbox{margin-top:6px}
+  .feldbox[hidden]{display:none}
+  .zwanziger{display:flex;flex-direction:column;gap:7px;margin:4px auto 0;max-width:360px}
+  .zwanziger.kompakt{gap:4px;max-width:290px}
+  .reihe{display:flex;gap:16px}
+  .zwanziger.kompakt .reihe{gap:10px}
+  .zwanziger.kompakt .reihe.blockende{margin-bottom:9px}
+  .fuenf{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;flex:1}
+  .zwanziger.kompakt .fuenf{gap:4px}
+  .zwanziger.kompakt .punkt{border-width:1.5px}
+  .punkt{
+    aspect-ratio:1;border-radius:50%;
+    border:2px solid var(--rand);background:#f7fafd;
+    transition:background-color .18s ease, border-color .18s ease, transform .18s ease;
+  }
+  .punkt.a{background:var(--rot);border-color:var(--rot)}
+  .punkt.b{background:var(--blau);border-color:var(--blau)}
+  .punkt.weg{
+    background:#f7fafd;border-color:var(--rot);border-style:dashed;
+    transform:scale(.82);opacity:.75;
+  }
+  .legende{font-size:13px;font-weight:700;color:var(--tinte-weich);text-align:center;margin-top:9px}
+
+  /* Tastenfeld */
+  /* Elternbereich */
+  .hintergrund{position:fixed;inset:0;background:rgba(16,38,60,.45);z-index:5}
+  .hintergrund[hidden]{display:none}
+  .eltern{
+    position:fixed;z-index:6;left:50%;transform:translateX(-50%);
+    top:16px;bottom:16px;width:min(460px,calc(100% - 24px));
+    background:var(--karte);border:2px solid var(--rand);border-radius:20px;
+    padding:16px;overflow-y:auto;box-shadow:0 12px 30px rgba(16,38,60,.25);
+  }
+  .eltern[hidden]{display:none}
+  .eltern-kopf{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+  .eltern h2{font-family:"Baloo 2",system-ui,sans-serif;font-size:20px;margin:0}
+  .eltern h3.listen-titel{font-size:14px;text-transform:uppercase;letter-spacing:.6px;color:var(--tinte-weich);margin:18px 0 8px}
+  .schliessen{
+    font:inherit;font-size:18px;font-weight:800;line-height:1;
+    background:var(--papier);border:2px solid var(--rand);border-radius:12px;
+    width:38px;height:38px;cursor:pointer;color:var(--tinte);
+  }
+  .kennzahlen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .kennzahl{background:var(--papier);border:2px solid var(--rand);border-radius:14px;padding:10px 8px;text-align:center}
+  .kennzahl .wert{font-family:"Baloo 2",system-ui,sans-serif;font-size:24px;font-weight:800;line-height:1.1}
+  .kennzahl .titel{font-size:12px;font-weight:700;color:var(--tinte-weich);margin-top:3px}
+  .aufteilung{margin-top:10px;font-size:14px;font-weight:700;color:var(--tinte-weich);line-height:1.7}
+  .aufteilung b{color:var(--tinte)}
+  .liste{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .zeile{
+    display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+    border:2px solid var(--rand);border-radius:12px;padding:8px 10px;font-size:15px;font-weight:700;
+  }
+  .zeile.ok{border-color:#bfe4cf;background:#f3fbf6}
+  .zeile.nok{border-color:#f4c9cb;background:#fdf4f4}
+  .zeile .rechnung{font-family:"Baloo 2",system-ui,sans-serif;font-size:17px}
+  .zeile .dauer{margin-left:auto;color:var(--tinte-weich);font-size:14px;white-space:nowrap}
+  .zeile .detail{width:100%;font-size:13px;font-weight:700;color:var(--rot)}
+  .zeile.ok .marke{color:var(--gruen)}
+  .zeile.nok .marke{color:var(--rot)}
+  .leerhinweis{font-size:14px;color:var(--tinte-weich);font-weight:700}
+  .eltern-fuss{display:flex;justify-content:space-between;gap:10px;margin-top:16px}
+  .hinweis{font-size:12px;color:var(--tinte-weich);margin:6px 0 0;line-height:1.5}
+
+  .tasten{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .taste{
+    font-family:"Baloo 2",system-ui,sans-serif;font-weight:800;font-size:26px;
+    padding:14px 0;border-radius:16px;cursor:pointer;
+    background:var(--karte);color:var(--tinte);
+    border:2px solid var(--rand);border-bottom-width:5px;
+  }
+  .taste:active{transform:translateY(2px);border-bottom-width:3px}
+  .taste.loeschen{font-size:22px;color:var(--tinte-weich)}
+  .taste.pruefen{background:var(--sonne);border-color:#e2a417;color:#3a2a00}
+  .taste[disabled]{opacity:.45;cursor:default}
+
+  .fusszeile{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:12px;flex-wrap:wrap}
+  .fusszeile .klein{flex:1 1 auto;text-align:center;padding:6px 2px;font-size:13px}
+  .klein{
+    font:inherit;font-weight:700;font-size:14px;color:var(--tinte-weich);
+    background:transparent;border:0;padding:6px 4px;cursor:pointer;text-decoration:underline;
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="blatt">
+
+  <header>
+    <h1>Rechnen üben</h1>
+    <div class="stand">Gelöst <b id="geloest">0</b> · Serie <b id="serie">0</b><span class="uhr" id="uhrBox"> · <b id="uhr">0,0 s</b></span></div>
+  </header>
+
+  <div class="optionen">
+    <div class="schalter arten" role="group" aria-label="Rechenart">
+      <button type="button" data-art="plus" aria-pressed="false">Plus</button>
+      <button type="button" data-art="minus" aria-pressed="false">Minus</button>
+      <button type="button" data-art="mal" aria-pressed="false">Mal</button>
+      <button type="button" data-art="gemischt" aria-pressed="true">Gemischt + −</button>
+      <button type="button" data-art="gemischtMal" aria-pressed="false">Gemischt + − ·</button>
+    </div>
+    <p class="titel-raum">Zahlenraum bis</p>
+    <div class="schalter raeume" role="group" aria-label="Zahlenraum" id="raeume"></div>
+  </div>
+
+  <div class="karte">
+    <div class="aufgabe" id="aufgabe" aria-live="polite">
+      <span class="zahl-a" id="zahlA">7</span>
+      <span class="zeichen" id="zeichen">+</span>
+      <span class="zahl-b" id="zahlB">5</span>
+      <span class="zeichen">=</span>
+      <span class="feld leer" id="antwort">?</span>
+    </div>
+    <p class="rueckmeldung" id="rueckmeldung">Larisa, tippe deine Antwort ein.</p>
+
+    <div class="feldbox" id="feldbox" hidden>
+      <div class="zwanziger" id="zwanziger" aria-hidden="true"></div>
+      <p class="legende" id="legende"></p>
+    </div>
+  </div>
+
+  <div class="tasten" id="tasten">
+    <button class="taste" type="button" data-ziffer="1">1</button>
+    <button class="taste" type="button" data-ziffer="2">2</button>
+    <button class="taste" type="button" data-ziffer="3">3</button>
+    <button class="taste" type="button" data-ziffer="4">4</button>
+    <button class="taste" type="button" data-ziffer="5">5</button>
+    <button class="taste" type="button" data-ziffer="6">6</button>
+    <button class="taste" type="button" data-ziffer="7">7</button>
+    <button class="taste" type="button" data-ziffer="8">8</button>
+    <button class="taste" type="button" data-ziffer="9">9</button>
+    <button class="taste loeschen" type="button" id="loeschen" aria-label="Letzte Ziffer löschen">⌫</button>
+    <button class="taste" type="button" data-ziffer="0">0</button>
+    <button class="taste pruefen" type="button" id="pruefen">OK</button>
+  </div>
+
+  <div class="fusszeile">
+    <button class="klein" type="button" id="hilfeKnopf" aria-pressed="false">Punkte zeigen</button>
+    <button class="klein" type="button" id="vollbildKnopf">Vollbild</button>
+    <button class="klein" type="button" id="elternKnopf">Für Eltern</button>
+    <button class="klein" type="button" id="zuruecksetzen">Von vorn</button>
+  </div>
+
+</div>
+
+<div class="hintergrund" id="hintergrund" hidden></div>
+<section class="eltern" id="eltern" role="dialog" aria-modal="true" aria-labelledby="elternTitel" hidden>
+  <div class="eltern-kopf">
+    <h2 id="elternTitel">Übersicht für Eltern</h2>
+    <button class="schliessen" type="button" id="schliessen" aria-label="Schließen">✕</button>
+  </div>
+
+  <div class="kennzahlen" id="kennzahlen"></div>
+  <div class="aufteilung" id="aufteilung"></div>
+
+  <h3 class="listen-titel">Aufgaben dieser Sitzung</h3>
+  <ol class="liste" id="liste"></ol>
+
+  <div class="eltern-fuss">
+    <button class="klein" type="button" id="uhrSchalter" aria-pressed="true">Uhr für Larisa ausblenden</button>
+  </div>
+  <div class="eltern-fuss">
+    <button class="klein" type="button" id="kopieren">Als Text kopieren</button>
+    <button class="klein" type="button" id="verlaufLoeschen">Auswertung löschen</button>
+  </div>
+  <p class="hinweis" id="startHinweis"></p>
+  <p class="hinweis">Die Auswertung gilt für die laufende Sitzung und geht beim Schließen der Seite verloren.</p>
+</section>
+
+<script>
+(function(){
+  "use strict";
+
+  var art = "gemischt";
+  var raum = 20;
+  var hilfeAn = false;
+  var aufgabe = null;
+  var eingabe = "";
+  var geloest = 0, serie = 0;
+  var fehlversuche = 0;
+  var gesperrt = false;
+  var letzte = "";
+  var startzeit = 0;
+  var falscheAntworten = [];
+  var verlauf = [];
+  var elternOffen = false;
+  var uhrAn = true;
+  var uhrTakt = null;
+
+  var el = {
+    zahlA: document.getElementById("zahlA"),
+    zahlB: document.getElementById("zahlB"),
+    zeichen: document.getElementById("zeichen"),
+    antwort: document.getElementById("antwort"),
+    aufgabe: document.getElementById("aufgabe"),
+    rueck: document.getElementById("rueckmeldung"),
+    feldbox: document.getElementById("feldbox"),
+    zwanziger: document.getElementById("zwanziger"),
+    legende: document.getElementById("legende"),
+    geloest: document.getElementById("geloest"),
+    serie: document.getElementById("serie"),
+    uhr: document.getElementById("uhr"),
+    uhrBox: document.getElementById("uhrBox"),
+    hilfeKnopf: document.getElementById("hilfeKnopf")
+  };
+
+  function zufall(min, max){
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  // Alle Malaufgaben des kleinen Einmaleins, deren Produkt in den Zahlenraum passt
+  function malPaare(){
+    var alle = [], ohneEins = [];
+    for (var a = 1; a <= 10; a++){
+      for (var b = 1; b <= 10; b++){
+        if (a * b <= raum){
+          alle.push([a, b]);
+          if (a > 1 && b > 1) ohneEins.push([a, b]);
+        }
+      }
+    }
+    // Aufgaben mit der 1 sind schnell langweilig – nur gelegentlich
+    return (ohneEins.length >= 4 && Math.random() < 0.75) ? ohneEins : alle;
+  }
+
+  // Erzeugt eine Aufgabe: nur ganze Zahlen, Zahlen ab 1,
+  // Ergebnis immer zwischen 0 und der Obergrenze (10 bis 100).
+  function neueAufgabe(){
+    var a, b, op, ergebnis, schluessel, versuche = 0;
+    var arten = { plus: "+", minus: "-", mal: "*" };
+    do {
+      // Jede Aufgabe besteht aus genau zwei Zahlen und einem Rechenzeichen
+      if (art === "gemischt") op = ["+", "-"][zufall(0, 1)];
+      else if (art === "gemischtMal") op = ["+", "-", "*"][zufall(0, 2)];
+      else op = arten[art];
+      if (op === "+"){
+        a = zufall(1, raum - 1);            // lässt mindestens 1 für b übrig
+        b = zufall(1, raum - a);            // Summe höchstens raum
+        ergebnis = a + b;
+      } else if (op === "-"){
+        a = zufall(1, raum);
+        b = zufall(1, a);                   // Ergebnis nie kleiner als 0
+        ergebnis = a - b;
+      } else {
+        var liste = malPaare();
+        var paar = liste[zufall(0, liste.length - 1)];
+        a = paar[0];
+        b = paar[1];                        // Produkt höchstens raum
+        ergebnis = a * b;
+      }
+      schluessel = a + op + b;
+      versuche++;
+    } while (schluessel === letzte && versuche < 12);
+    letzte = schluessel;
+    return { a:a, b:b, op:op, ergebnis:ergebnis };
+  }
+
+  function zwanzigerAufbauen(){
+    el.zwanziger.innerHTML = "";
+    var reihen = Math.ceil(raum / 10);
+    el.zwanziger.className = reihen > 2 ? "zwanziger kompakt" : "zwanziger";
+    for (var reihe = 0; reihe < reihen; reihe++){
+      var r = document.createElement("div");
+      r.className = "reihe";
+      // Wie im Hunderterfeld: nach jeder fünften Reihe ein größerer Abstand
+      if (reihen > 5 && (reihe + 1) % 5 === 0 && reihe + 1 < reihen) r.className += " blockende";
+      for (var gruppe = 0; gruppe < 2; gruppe++){
+        var g = document.createElement("div");
+        g.className = "fuenf";
+        for (var i = 0; i < 5; i++){
+          var p = document.createElement("div");
+          p.className = "punkt";
+          g.appendChild(p);
+        }
+        r.appendChild(g);
+      }
+      el.zwanziger.appendChild(r);
+    }
+  }
+
+  function punkteZeichnen(){
+    var punkte = el.zwanziger.querySelectorAll(".punkt");
+    for (var i = 0; i < punkte.length; i++){
+      punkte[i].className = "punkt";
+    }
+    if (!aufgabe) return;
+
+    if (aufgabe.op === "+"){
+      for (var j = 0; j < aufgabe.a; j++) punkte[j].classList.add("a");
+      for (var k = aufgabe.a; k < aufgabe.a + aufgabe.b; k++) punkte[k].classList.add("b");
+      el.legende.textContent = aufgabe.a + " rote und " + aufgabe.b + " blaue Punkte – zähle alle zusammen.";
+    } else if (aufgabe.op === "*"){
+      // a Gruppen mit je b Punkten, abwechselnd rot und blau
+      for (var g = 0; g < aufgabe.a; g++){
+        for (var h = 0; h < aufgabe.b; h++){
+          punkte[g * aufgabe.b + h].classList.add(g % 2 === 0 ? "a" : "b");
+        }
+      }
+      el.legende.textContent = aufgabe.a + " Gruppen mit je " + aufgabe.b +
+        " Punkten (abwechselnd rot und blau) – zähle alle zusammen.";
+    } else {
+      for (var m = 0; m < aufgabe.a; m++) punkte[m].classList.add("a");
+      for (var n = aufgabe.a - aufgabe.b; n < aufgabe.a; n++) punkte[n].classList.add("weg");
+      el.legende.textContent = "Von " + aufgabe.a + " Punkten sind " + aufgabe.b + " durchgestrichen – zähle die vollen Punkte.";
+    }
+  }
+
+  function anzeigen(){
+    el.zahlA.textContent = aufgabe.a;
+    el.zahlB.textContent = aufgabe.b;
+    el.zeichen.textContent = zeichen(aufgabe.op);
+    eingabeZeigen();
+    punkteZeichnen();
+  }
+
+  function eingabeZeigen(){
+    el.antwort.textContent = eingabe === "" ? "?" : eingabe;
+    el.antwort.classList.toggle("leer", eingabe === "");
+  }
+
+  function uhrAnzeigen(ms){
+    el.uhr.textContent = (ms / 1000).toFixed(1).replace(".", ",") + " s";
+  }
+
+  function uhrStarten(){
+    uhrStoppen();
+    uhrAnzeigen(0);
+    uhrTakt = setInterval(function(){
+      if (!gesperrt && !elternOffen) uhrAnzeigen(Date.now() - startzeit);
+    }, 100);
+  }
+
+  function uhrStoppen(){
+    if (uhrTakt) { clearInterval(uhrTakt); uhrTakt = null; }
+  }
+
+  function starten(){
+    aufgabe = neueAufgabe();
+    eingabe = "";
+    fehlversuche = 0;
+    falscheAntworten = [];
+    startzeit = Date.now();
+    gesperrt = false;
+    el.aufgabe.className = "aufgabe";
+    el.rueck.className = "rueckmeldung";
+    el.rueck.textContent = "Larisa, tippe deine Antwort ein.";
+    el.feldbox.hidden = !hilfeAn;
+    anzeigen();
+    uhrStarten();
+  }
+
+  function ziffer(z){
+    if (gesperrt) return;
+    if (eingabe.length >= 3) return;
+    if (eingabe === "" && z === "0" ) { eingabe = "0"; eingabeZeigen(); return; }
+    if (eingabe === "0") eingabe = "";
+    eingabe += z;
+    el.aufgabe.className = "aufgabe";
+    eingabeZeigen();
+  }
+
+  function loeschen(){
+    if (gesperrt) return;
+    eingabe = eingabe.slice(0, -1);
+    el.aufgabe.className = "aufgabe";
+    eingabeZeigen();
+  }
+
+  function pruefen(){
+    if (gesperrt || eingabe === "") return;
+    var wert = parseInt(eingabe, 10);
+    if (wert === aufgabe.ergebnis){
+      gesperrt = true;
+      var dauer = Date.now() - startzeit;
+      uhrStoppen();
+      uhrAnzeigen(dauer);
+      verlauf.push({
+        a: aufgabe.a,
+        b: aufgabe.b,
+        op: aufgabe.op,
+        ergebnis: aufgabe.ergebnis,
+        raum: raum,
+        ersteRichtig: fehlversuche === 0,
+        versuche: fehlversuche + 1,
+        falsch: falscheAntworten.slice(),
+        dauer: dauer
+      });
+      geloest++; serie++;
+      el.geloest.textContent = geloest;
+      el.serie.textContent = serie;
+      el.aufgabe.className = "aufgabe richtig";
+      el.rueck.className = "rueckmeldung richtig";
+      el.rueck.textContent = lob() + (uhrAn ? " " + (dauer / 1000).toFixed(1).replace(".", ",") + " s" : "");
+      ton(true);
+      setTimeout(starten, 1000);
+    } else {
+      fehlversuche++;
+      falscheAntworten.push(wert);
+      serie = 0;
+      el.serie.textContent = 0;
+      el.aufgabe.className = "aufgabe falsch";
+      el.rueck.className = "rueckmeldung falsch";
+      ton(false);
+      if (fehlversuche >= 2){
+        el.feldbox.hidden = false;
+        el.rueck.textContent = "Zähle die Punkte unten – dann noch einmal.";
+      } else {
+        el.rueck.textContent = "Fast! Versuch es noch einmal.";
+      }
+      eingabe = "";
+      setTimeout(function(){
+        el.aufgabe.className = "aufgabe";
+        eingabeZeigen();
+      }, 350);
+    }
+  }
+
+  var lobtexte = ["Richtig!", "Super!", "Genau!", "Stimmt!", "Klasse!", "Perfekt!"];
+  function lob(){
+    if (serie >= 5) return "Richtig – " + serie + " in Folge!";
+    return lobtexte[Math.floor(Math.random() * lobtexte.length)];
+  }
+
+  // Kurzer Ton ohne externe Dateien
+  var audio = null;
+  function ton(richtig){
+    try {
+      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+      var noten = richtig ? [660, 880] : [220];
+      noten.forEach(function(f, i){
+        var o = audio.createOscillator(), g = audio.createGain();
+        o.type = "sine"; o.frequency.value = f;
+        var t = audio.currentTime + i * 0.12;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.14, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+        o.connect(g); g.connect(audio.destination);
+        o.start(t); o.stop(t + 0.2);
+      });
+    } catch(e){ /* Ton ist optional */ }
+  }
+
+  // Bedienung
+  document.getElementById("tasten").addEventListener("click", function(e){
+    var b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.ziffer) ziffer(b.dataset.ziffer);
+  });
+  document.getElementById("loeschen").addEventListener("click", loeschen);
+  document.getElementById("pruefen").addEventListener("click", pruefen);
+
+  document.querySelectorAll("[data-art]").forEach(function(b){
+    b.addEventListener("click", function(){
+      art = b.dataset.art;
+      document.querySelectorAll("[data-art]").forEach(function(x){
+        x.setAttribute("aria-pressed", String(x === b));
+      });
+      starten();
+    });
+  });
+
+  // Zahlenraum: 10, 20, 30 ... 100
+  var raeume = document.getElementById("raeume");
+  for (var g = 10; g <= 100; g += 10){
+    var knopf = document.createElement("button");
+    knopf.type = "button";
+    knopf.dataset.raum = String(g);
+    knopf.textContent = String(g);
+    knopf.setAttribute("aria-label", "Zahlenraum bis " + g);
+    knopf.setAttribute("aria-pressed", String(g === raum));
+    raeume.appendChild(knopf);
+  }
+  raeume.addEventListener("click", function(e){
+    var b = e.target.closest("button");
+    if (!b) return;
+    raum = parseInt(b.dataset.raum, 10);
+    raeume.querySelectorAll("button").forEach(function(x){
+      x.setAttribute("aria-pressed", String(x === b));
+    });
+    zwanzigerAufbauen();
+    starten();
+  });
+
+  el.hilfeKnopf.addEventListener("click", function(){
+    hilfeAn = !hilfeAn;
+    el.hilfeKnopf.setAttribute("aria-pressed", String(hilfeAn));
+    el.hilfeKnopf.textContent = hilfeAn ? "Punkte ausblenden" : "Punkte zeigen";
+    el.feldbox.hidden = !hilfeAn;
+  });
+
+  document.getElementById("zuruecksetzen").addEventListener("click", function(){
+    geloest = 0; serie = 0;
+    el.geloest.textContent = "0";
+    el.serie.textContent = "0";
+    starten();
+  });
+
+  // ---- Auswertung für Eltern ----
+  var elternBox = document.getElementById("eltern");
+  var hintergrund = document.getElementById("hintergrund");
+  var kennzahlen = document.getElementById("kennzahlen");
+  var aufteilung = document.getElementById("aufteilung");
+  var liste = document.getElementById("liste");
+
+  function sek(ms){
+    return (ms / 1000).toFixed(1).replace(".", ",") + " s";
+  }
+
+  function zeichen(op){
+    if (op === "+") return "+";
+    if (op === "-") return "−";
+    return "·";
+  }
+
+  function auswertung(){
+    var n = verlauf.length;
+    var ersteRichtig = 0, gesamtzeit = 0, langsamste = 0;
+    verlauf.forEach(function(e){
+      if (e.ersteRichtig) ersteRichtig++;
+      gesamtzeit += e.dauer;
+      if (e.dauer > langsamste) langsamste = e.dauer;
+    });
+    return {
+      n: n,
+      ersteRichtig: ersteRichtig,
+      quote: n ? Math.round(ersteRichtig / n * 100) : 0,
+      schnitt: n ? gesamtzeit / n : 0,
+      langsamste: langsamste
+    };
+  }
+
+  function teilAuswertung(op){
+    var teil = verlauf.filter(function(e){ return e.op === op; });
+    if (!teil.length) return null;
+    var richtig = teil.filter(function(e){ return e.ersteRichtig; }).length;
+    var zeit = teil.reduce(function(s, e){ return s + e.dauer; }, 0) / teil.length;
+    return { n: teil.length, richtig: richtig, schnitt: zeit };
+  }
+
+  function elternZeichnen(){
+    var a = auswertung();
+
+    kennzahlen.innerHTML =
+      kachel(a.n, "Aufgaben") +
+      kachel(a.n ? a.ersteRichtig + "/" + a.n : "–", "1. Versuch richtig") +
+      kachel(a.n ? sek(a.schnitt) : "–", "Ø Zeit");
+
+    var teile = [];
+    var namen = { "+": "Plus", "-": "Minus", "*": "Mal" };
+    ["+", "-", "*"].forEach(function(op){
+      var t = teilAuswertung(op);
+      if (t) {
+        teile.push(namen[op] + ": <b>" + t.n + "</b> Aufgaben, <b>" +
+          t.richtig + "</b> beim ersten Versuch richtig, Ø <b>" + sek(t.schnitt) + "</b>");
+      }
+    });
+    if (a.n) teile.push("Längste Aufgabe: <b>" + sek(a.langsamste) + "</b> · Quote 1. Versuch: <b>" + a.quote + " %</b>");
+    aufteilung.innerHTML = teile.join("<br>");
+
+    liste.innerHTML = "";
+    if (!verlauf.length){
+      var leer = document.createElement("p");
+      leer.className = "leerhinweis";
+      leer.textContent = "Noch keine gelösten Aufgaben in dieser Sitzung.";
+      liste.appendChild(leer);
+      return;
+    }
+    verlauf.slice().reverse().forEach(function(e){
+      var li = document.createElement("li");
+      li.className = "zeile " + (e.ersteRichtig ? "ok" : "nok");
+      var rechnung = e.a + " " + zeichen(e.op) + " " + e.b + " = " + e.ergebnis;
+      li.innerHTML =
+        '<span class="rechnung">' + rechnung + '</span>' +
+        '<span class="marke">' + (e.ersteRichtig ? "✓ sofort richtig" : "✗ " + e.versuche + " Versuche") + '</span>' +
+        '<span class="dauer">' + sek(e.dauer) + '</span>' +
+        (e.falsch.length ? '<span class="detail">Eingetippt: ' + e.falsch.join(", ") + '</span>' : "");
+      liste.appendChild(li);
+    });
+  }
+
+  function kachel(wert, titel){
+    return '<div class="kennzahl"><div class="wert">' + wert + '</div><div class="titel">' + titel + '</div></div>';
+  }
+
+  var pauseStart = 0;
+
+  function elternOeffnen(){
+    elternOffen = true;
+    pauseStart = Date.now();
+    elternZeichnen();
+    document.getElementById("startHinweis").textContent = startArt();
+    hintergrund.hidden = false;
+    elternBox.hidden = false;
+    document.getElementById("schliessen").focus();
+  }
+
+  function elternSchliessen(){
+    elternOffen = false;
+    // Die Zeit im Elternmenü zählt nicht zur Rechenzeit
+    if (pauseStart && !gesperrt) startzeit += Date.now() - pauseStart;
+    pauseStart = 0;
+    elternBox.hidden = true;
+    hintergrund.hidden = true;
+    document.getElementById("elternKnopf").focus();
+  }
+
+  function alsText(){
+    var a = auswertung();
+    var zeilen = ["Rechnen üben – Auswertung", "Aufgaben: " + a.n +
+      " · beim 1. Versuch richtig: " + a.ersteRichtig + " (" + a.quote + " %)" +
+      (a.n ? " · Ø Zeit: " + sek(a.schnitt) : ""), ""];
+    verlauf.forEach(function(e, i){
+      zeilen.push((i + 1) + ". " + e.a + " " + zeichen(e.op) + " " + e.b + " = " + e.ergebnis +
+        " | " + (e.ersteRichtig ? "sofort richtig" : e.versuche + " Versuche (" + e.falsch.join(", ") + ")") +
+        " | " + sek(e.dauer) + " | Zahlenraum " + e.raum);
+    });
+    return zeilen.join("\n");
+  }
+
+  document.getElementById("elternKnopf").addEventListener("click", elternOeffnen);
+  document.getElementById("schliessen").addEventListener("click", elternSchliessen);
+  hintergrund.addEventListener("click", elternSchliessen);
+
+  document.getElementById("kopieren").addEventListener("click", function(){
+    var knopf = this;
+    var text = alsText();
+    var fertig = function(){
+      knopf.textContent = "Kopiert";
+      setTimeout(function(){ knopf.textContent = "Als Text kopieren"; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(fertig, function(){ ersatzKopie(text, fertig); });
+    } else {
+      ersatzKopie(text, fertig);
+    }
+  });
+
+  function ersatzKopie(text, fertig){
+    var t = document.createElement("textarea");
+    t.value = text;
+    t.style.position = "fixed";
+    t.style.opacity = "0";
+    document.body.appendChild(t);
+    t.select();
+    try { document.execCommand("copy"); fertig(); } catch(e){ /* nichts */ }
+    document.body.removeChild(t);
+  }
+
+  document.getElementById("uhrSchalter").addEventListener("click", function(){
+    uhrAn = !uhrAn;
+    el.uhrBox.hidden = !uhrAn;
+    this.setAttribute("aria-pressed", String(uhrAn));
+    this.textContent = uhrAn ? "Uhr für Larisa ausblenden" : "Uhr für Larisa einblenden";
+  });
+
+  document.getElementById("verlaufLoeschen").addEventListener("click", function(){
+    verlauf = [];
+    elternZeichnen();
+  });
+
+  document.addEventListener("keydown", function(e){
+    if (elternOffen){
+      if (e.key === "Escape") { elternSchliessen(); e.preventDefault(); }
+      return;
+    }
+    if (e.key >= "0" && e.key <= "9") { ziffer(e.key); e.preventDefault(); }
+    else if (e.key === "Backspace") { loeschen(); e.preventDefault(); }
+    else if (e.key === "Enter") { pruefen(); e.preventDefault(); }
+  });
+
+  // Offline-Betrieb: nur möglich, wenn die Seite über http(s) geladen wurde
+  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+
+  // Hinweis für Eltern: läuft die App installiert oder im Browser?
+  function startArt(){
+    if (alsAppGestartet()) return "Läuft als installierte App im Vollbild – ohne Adressleiste.";
+    if (imVollbild()) return "Läuft im Browser-Vollbild – die Adressleiste ist ausgeblendet. Wischt man vom oberen Rand, kommt sie zurück; dagegen hilft die Bildschirm-Fixierung (App-Pinning) in den Android-Einstellungen.";
+    return "Läuft im Browserfenster mit Adressleiste. Der Vollbildmodus startet mit der ersten Berührung des Bildschirms oder über „Vollbild“ unten.";
+  }
+
+  // ---- Vollbild ----
+  // Browser lassen Vollbild nur nach einer Nutzergeste zu. Deshalb wird der
+  // Modus bei der ersten Berührung bzw. dem ersten Tastendruck angefordert.
+  function alsAppGestartet(){
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+           (window.matchMedia && window.matchMedia("(display-mode: fullscreen)").matches) ||
+           window.navigator.standalone === true;
+  }
+
+  function imVollbild(){
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  function vollbildAn(){
+    var e = document.documentElement;
+    var anfordern = e.requestFullscreen || e.webkitRequestFullscreen || e.mozRequestFullScreen || e.msRequestFullscreen;
+    if (!anfordern) return;
+    try {
+      var p = anfordern.call(e, { navigationUI: "hide" });
+      if (p && p.catch) p.catch(function(){});
+    } catch(err){ /* vom Browser abgelehnt */ }
+    try {
+      if (screen.orientation && screen.orientation.lock){
+        screen.orientation.lock("portrait").catch(function(){});
+      }
+    } catch(err){ /* nicht überall verfügbar */ }
+  }
+
+  function vollbildAus(){
+    var b = document.exitFullscreen || document.webkitExitFullscreen;
+    if (b) { try { b.call(document); } catch(err){} }
+  }
+
+  function vollbildKnopfAktualisieren(){
+    var k = document.getElementById("vollbildKnopf");
+    if (!k) return;
+    if (alsAppGestartet() && !document.fullscreenEnabled){ k.hidden = true; return; }
+    k.textContent = imVollbild() ? "Vollbild beenden" : "Vollbild";
+  }
+
+  function ersteGeste(){
+    document.removeEventListener("pointerdown", ersteGeste, true);
+    document.removeEventListener("keydown", ersteGeste, true);
+    if (!imVollbild()) vollbildAn();
+  }
+
+  document.addEventListener("pointerdown", ersteGeste, true);
+  document.addEventListener("keydown", ersteGeste, true);
+  document.addEventListener("fullscreenchange", vollbildKnopfAktualisieren);
+  document.addEventListener("webkitfullscreenchange", vollbildKnopfAktualisieren);
+
+  document.getElementById("vollbildKnopf").addEventListener("click", function(){
+    if (imVollbild()) vollbildAus(); else vollbildAn();
+  });
+
+  vollbildKnopfAktualisieren();
+
+  zwanzigerAufbauen();
+  starten();
+})();
+</script>
+</body>
+</html>
